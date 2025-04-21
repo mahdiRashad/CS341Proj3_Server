@@ -1,105 +1,42 @@
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
-import javafx.application.Platform;
-import javafx.scene.control.ListView;
+public class Server implements Runnable {
+    //when required automatically creates new threads and reuses old ones when possible, handles many games at once
+    private static final ExecutorService threadsPool = Executors.newCachedThreadPool();
+    //hold connected clients who are waiting to be paired with another player
+    private static final BlockingQueue<Socket> ClientsQueue = new LinkedBlockingQueue<>();
 
+    private final Consumer<Message> callback;
 
-public class Server{
+    public Server(Consumer<Message> callback) {
+        this.callback = callback;
+    }
 
-	int count = 1;	
-	ArrayList<ClientThread> clients = new ArrayList<ClientThread>();
-	TheServer server;
-	
-	
-	Server(){
+    @Override
+    public void run() {
+        try (ServerSocket serverSocket = new ServerSocket(5555)) {
+            System.out.println("Connect Four Server is running...");
 
-		server = new TheServer();
-		server.start();
-	}
-	
-	
-	public class TheServer extends Thread{
-		
-		public void run() {
-		
-			try(ServerSocket mysocket = new ServerSocket(5555);){
-		    System.out.println("Server is waiting for a client!");
-		  
-			
-		    while(true) {
-		
-				ClientThread c = new ClientThread(mysocket.accept(), count);
-				clients.add(c);
-				c.start();
-				
-				count++;
-				
-			    }
-			} catch(Exception e) {
-					System.err.println("Server did not launch");
-				}
-			}
-		}
-	
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("New client has connected");
 
-		class ClientThread extends Thread{
-			
-		
-			Socket connection;
-			int count;
-			ObjectInputStream in;
-			ObjectOutputStream out;
-			
-			ClientThread(Socket s, int count){
-				this.connection = s;
-				this.count = count;	
-			}
-			
-			public void updateClients(String message) {
-				//TODO implement
-			}
-			
-			public void run(){
-					
-				try {
-					in = new ObjectInputStream(connection.getInputStream());
-					out = new ObjectOutputStream(connection.getOutputStream());
-					connection.setTcpNoDelay(true);	
-				}
-				catch(Exception e) {
-					System.out.println("Streams not open");
-				}
-				
-				updateClients("new client on server: client #"+count);
-					
-				 while(true) {
-					    try {
-					    	String data = in.readObject().toString();
-					    	System.out.println("client: " + count + " sent: " + data);
-					    	updateClients("client #"+count+" said: "+data);
-					    	
-					    	}
-					    catch(Exception e) {
-					    	System.err.println("OOOOPPs...Something wrong with the socket from client: " + count + "....closing down!");
-					    	updateClients("Client #"+count+" has left the server!");
-					    	clients.remove(this);
-					    	break;
-					    }
-					}
-				}//end of run
-			
-			
-		}//end of client thread
+                //add clients to the queue and start the game when there are two clients in the queue
+                ClientsQueue.offer(clientSocket);
+                if (ClientsQueue.size() >= 2) {  //when the queue has two player or more
+                    //poll from the queue
+                    Socket player1Socket = ClientsQueue.poll();
+                    Socket player2Socket = ClientsQueue.poll();
+
+                    //start the s game session with two players
+                    threadsPool.execute(new ServerThread(player1Socket, player2Socket, callback));
+                }
+            }
+        }
+        catch (IOException e) {System.out.println("Connect Four Server is not running, exiting...");}
+    }
 }
-
-
-	
-	
-
-	

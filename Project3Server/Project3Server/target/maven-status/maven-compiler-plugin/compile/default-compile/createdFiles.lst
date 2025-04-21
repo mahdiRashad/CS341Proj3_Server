@@ -1,7 +1,10 @@
 GuiServer.class
 GameRules.class
-Server$ClientThread.class
+MessageType.class
+PlayerThread.class
+GuiServer$2.class
 Server.class
-Game.class
+ServerThread.class
 Message.class
-Server$TheServer.class
+GuiServer$1.class
+PlayerThread$1.class

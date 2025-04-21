@@ -4,7 +4,6 @@ public class GameRules {
     //gameBord may contain 0=empty slot, 1=red/player1, 2=yellow,player2
     private final int[][] gameBoard = new int[6][7];
     private int totalMovesSoFar = 0;
-    private int playerNumber =0;
 
     //return true if it is a valid move
     public boolean isMakeMove(int player, int col) {
@@ -45,15 +44,5 @@ public class GameRules {
     //check if the board is all full in this case return tu=rue for draw 6*7=42
     public boolean isDraw() {
         return totalMovesSoFar == 42;
-    }
-
-    //return the current player number
-    public int getPlayerNumber() {
-        return playerNumber;
-    }
-
-    //switch player by changing the player number
-    public void switchPlayer() {
-        playerNumber = 1 - playerNumber;
     }
 }
