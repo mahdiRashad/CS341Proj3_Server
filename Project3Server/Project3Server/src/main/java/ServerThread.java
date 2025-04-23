@@ -4,38 +4,41 @@ import java.util.function.Consumer;
 
 public class ServerThread implements Runnable {
 
-    //each game thread need two players to start and run the thread
-    private Socket player1Socket;
-    private Socket player2Socket;
-    private GameRules logic = new GameRules();
+    //each game thread need two players, GameRules, and a callback to start and run the thread
+    private final PlayerAuthHandler.PlayerSessionData player1;
+    private final PlayerAuthHandler.PlayerSessionData player2;
+    private final GameRules rules = new GameRules();
     private final Consumer<Message> callback;
+
+    private final PlayersManger userManager;
+
     //thread constructor
-    public ServerThread(Socket p1S, Socket p2S, Consumer<Message> callback) {
-        this.player1Socket = p1S;
-        this.player2Socket = p2S;
+    public ServerThread(PlayerAuthHandler.PlayerSessionData p1S, PlayerAuthHandler.PlayerSessionData p2S, Consumer<Message> callback, PlayersManger userManager) {
+        this.player1 = p1S;
+        this.player2 = p2S;
         this.callback = callback;
+        this.userManager = userManager;
     }
 
     @Override
     public void run() {
         try {
-            //two inputs and two outputs because each playerSocket need an out and in
-            ObjectOutputStream out1 = new ObjectOutputStream(player1Socket.getOutputStream());
-            ObjectInputStream in1 = new ObjectInputStream(player1Socket.getInputStream());
-            ObjectOutputStream out2 = new ObjectOutputStream(player2Socket.getOutputStream());
-            ObjectInputStream in2 = new ObjectInputStream(player2Socket.getInputStream());
-
             //send a connect message to tell the server that the two player (recipient 0, red and recipient 1, yellow) are joined
-            out1.writeObject(new Message(0, true));
-            out2.writeObject(new Message(1, true));
+            //two player has been connected message to the server GUI
+            Message m1 = new Message(0, true);
+            m1.username = player1.username;  // ✅ inject name
+            player1.out.writeObject(m1);
+            callback.accept(m1);             // for GUI
 
-            callback.accept(new Message(0, true));
-            callback.accept(new Message(1, true));
+            Message m2 = new Message(1, true);
+            m2.username = player2.username;  // ✅ inject name
+            player2.out.writeObject(m2);
+            callback.accept(m2);             // for GUI
 
             //start a listener for player 0
-            new Thread(new PlayerThread(in1, out1, out2, 0, logic, callback)).start();
+            new Thread(new PlayerThread(player1.in, player1.out, player2.out, 0, rules, callback, player1.username, player2.username, userManager)).start();
             //start a listener for player 1
-            new Thread(new PlayerThread(in2, out2, out1, 1, logic, callback)).start();
+            new Thread(new PlayerThread(player2.in, player2.out, player1.out, 1, rules, callback, player2.username, player1.username, userManager)).start();
 
         } catch (IOException e) {
             throw new RuntimeException(e);

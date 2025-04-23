@@ -11,9 +11,12 @@ import javafx.stage.WindowEvent;
 
 public class GuiServer extends Application {
 
-    private ListView<String> listMessages;
-    private ListView<String> listUsers;
+    private ListView<String> messages;
+    private ListView<String> users;
     private Server server; // Custom class that wraps the server logic
+    String currentPlayer;
+    String player1;
+    String player2;
 
     public static void main(String[] args) {
         launch(args);
@@ -21,58 +24,108 @@ public class GuiServer extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        listMessages = new ListView<>();
-        listUsers = new ListView<>();
+        messages = new ListView<>();
+        users = new ListView<>();
 
         server = new Server((Message msg) -> {
             Platform.runLater(() -> {
                 switch (msg.type) {
                     case TEXT:
-                        listMessages.getItems().add("[Chat] Player " + msg.recipient + ": " + msg.message);
+                        if(msg.recipient==1){
+                            currentPlayer=player1;
+                        }
+                        else{
+                            currentPlayer=player2;
+                        }
+                        messages.getItems().add("[Chatting] Player " + currentPlayer + " send a message: " + msg.message);
                         break;
 
-                    case NEWUSER:
-                        listUsers.getItems().add("Player " + msg.recipient);
-                        listMessages.getItems().add("[Join] Player " + msg.recipient + " has joined the game.");
-                        break;
+                    case NEW_USER:
+                        if(msg.recipient==1){
+                            player1=msg.username;
+                            users.getItems().add("Player " + player1);
+                            messages.getItems().add("[Joining] Player " + player1 + " has joined the game.");
+                            break;
+                        }
+                        else{
+                            player2=msg.username;
+                            users.getItems().add("Player " + player2);
+                            messages.getItems().add("[Joining] Player " + player2 + " has joined the game.");
+                            break;
+                        }
 
                     case DISCONNECT:
-                        listUsers.getItems().remove("Player " + msg.recipient);
-                        listMessages.getItems().add("[Disconnect] Player " + msg.recipient + " has left the game.");
+                        if(msg.recipient==1){
+                            currentPlayer=player1;
+                        }
+                        else{
+                            currentPlayer=player2;
+                        }
+                        users.getItems().remove("Player " + currentPlayer);
+                        messages.getItems().add("[Disconnected] Player " + currentPlayer + " has left the game.");
                         break;
 
                     case MOVE:
+                        if(msg.recipient==1){
+                            currentPlayer=player1;
+                        }
+                        else{
+                            currentPlayer=player2;
+                        }
                         String[] parts = msg.message.split(":");
                         if (parts.length == 2) {
-                            int player = Integer.parseInt(parts[0]);
                             int column = Integer.parseInt(parts[1]);
-                            listMessages.getItems().add("[Move] Player " + player + " placed a token in column " + column);
+                            messages.getItems().add("[Move] Player " + currentPlayer + " placed a token in column " + column);
                         } else {
-                            listMessages.getItems().add("[Move] Received malformed move message: " + msg.message);
+                            messages.getItems().add("[Move] Received malformed move message: " + msg.message);
                         }
                         break;
 
                     case WIN:
-                        listMessages.getItems().add("[Game Over] Player " + msg.recipient + " has won the game!");
+                        if(msg.recipient==1){
+                            currentPlayer=player1;
+                        }
+                        else{
+                            currentPlayer=player2;
+                        }
+                        messages.getItems().add("[Game Over] Player " + currentPlayer + " has won the game!");
                         break;
 
                     case DRAW:
-                        listMessages.getItems().add("[Game Over] The game ended in a draw.");
+                        if(msg.recipient==1){
+                            currentPlayer=player1;
+                        }
+                        else{
+                            currentPlayer=player2;
+                        }
+                        messages.getItems().add("[Game Over] The game ended in a draw.");
                         break;
 
                     case INVALID:
-                        listMessages.getItems().add("[Invalid] Player " + msg.recipient + ": " + msg.message);
+                        if(msg.recipient==1){
+                            currentPlayer=player1;
+                        }
+                        else{
+                            currentPlayer=player2;
+                        }
+                        messages.getItems().add("[Invalid] Player " + currentPlayer + ": " + msg.message);
                         break;
 
                     default:
-                        listMessages.getItems().add("[Unknown] Message type: " + msg.type + " from Player " + msg.recipient);
+                        if(msg.recipient==1){
+                            currentPlayer=player1;
+                        }
+                        else{
+                            currentPlayer=player2;
+                        }
+                        messages.getItems().add("[Unknown] Message type: " + msg.type + " from Player " + currentPlayer);
                         break;
                 }
 
             });
         });
 
-        HBox hbox = new HBox(10, listUsers, listMessages);
+        HBox hbox = new HBox(10, users, messages);
         BorderPane root = new BorderPane(hbox);
         root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color: #f0f0f0; -fx-font-family: 'serif';");
@@ -89,6 +142,6 @@ public class GuiServer extends Application {
             }
         });
 
-        new Thread(server).start(); // Run the server in background
+        new Thread(server).start();
     }
 }

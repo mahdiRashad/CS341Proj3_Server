@@ -8,9 +8,11 @@ public class Server implements Runnable {
     //when required automatically creates new threads and reuses old ones when possible, handles many games at once
     private static final ExecutorService threadsPool = Executors.newCachedThreadPool();
     //hold connected clients who are waiting to be paired with another player
-    private static final BlockingQueue<Socket> ClientsQueue = new LinkedBlockingQueue<>();
+    private static final BlockingQueue<PlayerAuthHandler.PlayerSessionData> clientsQueue = new LinkedBlockingQueue<>();
 
     private final Consumer<Message> callback;
+
+    private final PlayersManger userManager = new PlayersManger();
 
     public Server(Consumer<Message> callback) {
         this.callback = callback;
@@ -21,22 +23,25 @@ public class Server implements Runnable {
         try (ServerSocket serverSocket = new ServerSocket(5555)) {
             System.out.println("Connect Four Server is running...");
 
+            new Thread(() -> {
+                while (true) {
+                    try {
+                        PlayerAuthHandler.PlayerSessionData player1 = clientsQueue.take();
+                        PlayerAuthHandler.PlayerSessionData player2 = clientsQueue.take();
+                        threadsPool.execute(new ServerThread(player1, player2, callback, userManager));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+
+            // Accept incoming connections and authenticate
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("New client has connected");
-
-                //add clients to the queue and start the game when there are two clients in the queue
-                ClientsQueue.offer(clientSocket);
-                if (ClientsQueue.size() >= 2) {  //when the queue has two player or more
-                    //poll from the queue
-                    Socket player1Socket = ClientsQueue.poll();
-                    Socket player2Socket = ClientsQueue.poll();
-
-                    //start the s game session with two players
-                    threadsPool.execute(new ServerThread(player1Socket, player2Socket, callback));
-                }
+                threadsPool.execute(new PlayerAuthHandler(clientSocket, userManager, clientsQueue::offer));
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        catch (IOException e) {System.out.println("Connect Four Server is not running, exiting...");}
     }
 }
