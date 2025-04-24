@@ -3,30 +3,28 @@ import java.util.function.Consumer;
 
 public class PlayerThread implements Runnable {
 
-    //each player has outStream, inStream, int(0 or 1), a GameRules, and callback
+    //each player has outStream, inStream, int(0 or 1), a GameRules, callback, and a username
     ObjectOutputStream out;
     ObjectInputStream in;
     ObjectOutputStream otherPlayerOut;
     int playerId;
     private final GameRules rules;
     private final Consumer<Message> callback;
-
     private final String username;
+    private final Authenticator authenticator;
     private final String opponentUsername;
-    private final PlayersManger userManager;
 
     //thread constructor
-    public PlayerThread(ObjectInputStream in1, ObjectOutputStream out1, ObjectOutputStream out2, int playerId, GameRules rules, Consumer<Message> callback, String username, String opponentUsername, PlayersManger userManager) {
+    public PlayerThread(ObjectInputStream in1, ObjectOutputStream out1, ObjectOutputStream out2, int playerId, GameRules rules, Consumer<Message> callback, String username, String opponentUsername, Authenticator authenticator) {
         this.in = in1;
         this.out = out1;
         this.otherPlayerOut = out2;
         this.playerId = playerId;
         this.rules = rules;
         this.callback = callback;
-
         this.username = username;
+        this.authenticator = authenticator;
         this.opponentUsername = opponentUsername;
-        this.userManager = userManager;
     }
 
     @Override
@@ -34,14 +32,11 @@ public class PlayerThread implements Runnable {
         try {
             while (true) {
                 Object readObject = in.readObject();
-                if (!(readObject instanceof Message)){
-                    continue;
-                }
                 Message message = (Message) readObject;
 
                 switch (message.type) {
                     case TEXT:
-                        message.username = this.username;      // ✅ ensure username is filled
+                        message.username = this.username;
                         otherPlayerOut.writeObject(message);
                         out.writeObject(message);
                         callback.accept(message);
@@ -51,7 +46,6 @@ public class PlayerThread implements Runnable {
                         synchronized (rules) {
                             if (playerId != rules.getPlayerNumber()) {
                                 Message notTurn = new Message(playerId, "Not your turn");
-                                System.out.println("[SERVER] Not your turn: " + playerId);
                                 notTurn.type = MessageType.INVALID;
                                 out.writeObject(notTurn);
                                 callback.accept(notTurn);
@@ -71,6 +65,10 @@ public class PlayerThread implements Runnable {
                                     out.writeObject(win);
                                     otherPlayerOut.writeObject(win);
                                     callback.accept(win);
+                                    authenticator.recordWin(username);
+                                    authenticator.recordLoss(opponentUsername);
+                                    sendStats(out, username);
+                                    sendStats(otherPlayerOut, opponentUsername);
                                     return;
                                 } else if (rules.isDraw()) {
                                     Message draw = new Message(-1, "DRAW");
@@ -78,6 +76,8 @@ public class PlayerThread implements Runnable {
                                     out.writeObject(draw);
                                     otherPlayerOut.writeObject(draw);
                                     callback.accept(draw);
+                                    sendStats(out, username);
+                                    sendStats(otherPlayerOut, opponentUsername);
                                     return;
                                 }
                                 System.out.println("[SERVER] Received MOVE from player " + playerId + ": column " + message.message);
@@ -102,5 +102,14 @@ public class PlayerThread implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendStats(ObjectOutputStream out, String username) throws IOException {
+        int[] stats = authenticator.getStats(username);
+        Message statMsg = new Message(playerId, username + " stats - Wins: " + stats[0] + ", Losses: " + stats[1]);
+        statMsg.type = MessageType.TEXT;
+        statMsg.username = username;
+        out.writeObject(statMsg);
+        callback.accept(statMsg);
     }
 }

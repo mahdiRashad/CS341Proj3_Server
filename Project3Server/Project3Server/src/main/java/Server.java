@@ -8,11 +8,11 @@ public class Server implements Runnable {
     //when required automatically creates new threads and reuses old ones when possible, handles many games at once
     private static final ExecutorService threadsPool = Executors.newCachedThreadPool();
     //hold connected clients who are waiting to be paired with another player
-    private static final BlockingQueue<PlayerAuthHandler.PlayerSessionData> clientsQueue = new LinkedBlockingQueue<>();
+    private static final BlockingQueue<PlayerAuthenticator.PlayerData> clientsQueue = new LinkedBlockingQueue<>();
 
     private final Consumer<Message> callback;
 
-    private final PlayersManger userManager = new PlayersManger();
+    private final Authenticator userManager = new Authenticator();
 
     public Server(Consumer<Message> callback) {
         this.callback = callback;
@@ -26,8 +26,8 @@ public class Server implements Runnable {
             new Thread(() -> {
                 while (true) {
                     try {
-                        PlayerAuthHandler.PlayerSessionData player1 = clientsQueue.take();
-                        PlayerAuthHandler.PlayerSessionData player2 = clientsQueue.take();
+                        PlayerAuthenticator.PlayerData player1 = clientsQueue.take();
+                        PlayerAuthenticator.PlayerData player2 = clientsQueue.take();
                         threadsPool.execute(new ServerThread(player1, player2, callback, userManager));
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -35,10 +35,9 @@ public class Server implements Runnable {
                 }
             }).start();
 
-            // Accept incoming connections and authenticate
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                threadsPool.execute(new PlayerAuthHandler(clientSocket, userManager, clientsQueue::offer));
+                threadsPool.execute(new PlayerAuthenticator(clientSocket, userManager, clientsQueue::offer));
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -33,10 +33,10 @@ public class GameRules {
     }
 
     //the actual function that checks for connected four of the same type
-    private boolean isFourConnected(int r, int c, int dr, int dc, int val) {
+    private boolean isFourConnected(int row, int col, int dir, int dc, int val) {
         for (int i = 0; i < 4; i++) {
-            int nr = r + dr * i;
-            int nc = c + dc * i;
+            int nr = row + dir * i;
+            int nc = col + dc * i;
             if (nr < 0 || nr >= 6 || nc < 0 || nc >= 7 || gameBoard[nr][nc] != val) return false;
         }
         return true;

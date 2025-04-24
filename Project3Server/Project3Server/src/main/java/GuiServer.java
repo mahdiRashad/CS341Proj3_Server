@@ -13,7 +13,7 @@ public class GuiServer extends Application {
 
     private ListView<String> messages;
     private ListView<String> users;
-    private Server server; // Custom class that wraps the server logic
+    private Server server;
     String currentPlayer;
     String player1;
     String player2;
