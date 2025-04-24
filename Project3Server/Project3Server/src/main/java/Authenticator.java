@@ -4,13 +4,21 @@ import java.util.*;
 public class Authenticator {
     private static final String FILE = "src/main/resources/playersInfo.txt";
     private final List<List<String>> userInfo = new ArrayList<>();
+    private final Set<String> online = new HashSet<>();
 
     public Authenticator() {
         loadData();
     }
 
     public synchronized boolean validateExistingLogin(String username, String password) {
-        return userInfo.stream().anyMatch(entry -> entry.get(0).equals(username) && entry.get(1).equals(password));
+        for (List<String> entry : userInfo) {
+            if (entry.get(0).equals(username) && entry.get(1).equals(password)) {
+                if (online.contains(username)) return false; // already logged in
+                online.add(username);
+                return true;
+            }
+        }
+        return false;
     }
 
     public synchronized boolean createNewAccount(String username, String password) {
@@ -18,6 +26,7 @@ public class Authenticator {
             if (entry.get(0).equals(username)) return false;
         }
         userInfo.add(new ArrayList<>(Arrays.asList(username, password, "0", "0")));
+        online.add(username);
         saveData();
         return true;
     }
@@ -31,6 +40,10 @@ public class Authenticator {
             }
         }
         saveData();
+    }
+
+    public synchronized void logout(String username) {
+        online.remove(username);
     }
 
     public synchronized void recordLoss(String username) {

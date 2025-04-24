@@ -67,8 +67,20 @@ public class PlayerThread implements Runnable {
                                     callback.accept(win);
                                     authenticator.recordWin(username);
                                     authenticator.recordLoss(opponentUsername);
+
                                     sendStats(out, username);
                                     sendStats(otherPlayerOut, opponentUsername);
+
+                                    authenticator.logout(username);
+                                    authenticator.logout(opponentUsername);
+
+                                    Message disconnect1 = new Message(0, false);
+                                    out.writeObject(disconnect1);
+                                    callback.accept(disconnect1);
+
+                                    Message disconnect2 = new Message(1, false);
+                                    otherPlayerOut.writeObject(disconnect2);
+                                    callback.accept(disconnect2);
                                     return;
                                 } else if (rules.isDraw()) {
                                     Message draw = new Message(-1, "DRAW");
@@ -76,8 +88,20 @@ public class PlayerThread implements Runnable {
                                     out.writeObject(draw);
                                     otherPlayerOut.writeObject(draw);
                                     callback.accept(draw);
+
                                     sendStats(out, username);
                                     sendStats(otherPlayerOut, opponentUsername);
+
+                                    authenticator.logout(username);
+                                    authenticator.logout(opponentUsername);
+
+                                    Message disconnect1 = new Message(0, false);
+                                    out.writeObject(disconnect1);
+                                    callback.accept(disconnect1);
+
+                                    Message disconnect2 = new Message(1, false);
+                                    otherPlayerOut.writeObject(disconnect2);
+                                    callback.accept(disconnect2);
                                     return;
                                 }
                                 System.out.println("[SERVER] Received MOVE from player " + playerId + ": column " + message.message);
