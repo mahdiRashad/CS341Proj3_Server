@@ -1,5 +1,3 @@
-
-
 public class GameRules {
     //gameBord may contain 0=empty slot, 1=red/player1, 2=yellow,player2
     private final int[][] gameBoard = new int[6][7];

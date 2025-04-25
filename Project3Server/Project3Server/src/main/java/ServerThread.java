@@ -3,7 +3,7 @@ import java.util.function.Consumer;
 
 public class ServerThread implements Runnable {
 
-    //each game thread need two players, GameRules, and a callback to start and run the thread
+    //each game thread need two players, GameRules, authenticator, and a callback to start and run the thread
     private final PlayerAuthenticator.PlayerData player1;
     private final PlayerAuthenticator.PlayerData player2;
     private final GameRules rules = new GameRules();

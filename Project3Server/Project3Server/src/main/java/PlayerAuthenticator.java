@@ -6,15 +6,15 @@ public class PlayerAuthenticator implements Runnable {
     private final Socket socket;
     private final ObjectInputStream in;
     private final ObjectOutputStream out;
-    private final Authenticator playersManager;
+    private final Authenticator authenticator;
     private final Consumer<PlayerData> callback;
 
-    public PlayerAuthenticator(Socket socket, Authenticator playersManager, Consumer<PlayerData> callback) throws IOException {
+    public PlayerAuthenticator(Socket socket, Authenticator authenticator, Consumer<PlayerData> callback) throws IOException {
         this.socket = socket;
         this.out = new ObjectOutputStream(socket.getOutputStream());
         this.out.flush();
         this.in = new ObjectInputStream(socket.getInputStream());
-        this.playersManager = playersManager;
+        this.authenticator = authenticator;
         this.callback = callback;
     }
 
@@ -22,27 +22,38 @@ public class PlayerAuthenticator implements Runnable {
     public void run() {
         try {
             while (true) {
-                Object object = in.readObject();
-                Message message = (Message) object;
+                Object readObject = in.readObject();
+                Message message = (Message) readObject;
 
-                if (message.type == MessageType.LOGIN) {
-                    boolean result = playersManager.validateExistingLogin(message.username, message.password);
-                    Message response = new Message(MessageType.LOGIN_RESULT, message.username, null);
-                    response.message = result ? "SUCCESS" : "FAIL";
-                    out.writeObject(response);
-                    if (result) {
-                        callback.accept(new PlayerData(socket, in, out, message.username));
+                Message response;
+                boolean result;
+
+                switch (message.type) {
+                    case LOGIN:
+                        result = authenticator.validateExistingLogin(message.username, message.password);
+                        response = new Message(MessageType.LOGIN_RESULT, message.username, null);
+                        response.message = result ? "SUCCESS" : "FAIL";
+                        out.writeObject(response);
+                        if (result) {
+                            callback.accept(new PlayerData(socket, in, out, message.username));
+                            return;
+                        }
                         break;
-                    }
-                } else if (message.type == MessageType.CREATE_ACCOUNT) {
-                    boolean result = playersManager.createNewAccount(message.username, message.password);
-                    Message response = new Message(MessageType.CREATE_ACCOUNT_RESULT, message.username, null);
-                    response.message = result ? "SUCCESS" : "FAIL";
-                    out.writeObject(response);
-                    if (result) {
-                        callback.accept(new PlayerData(socket, in, out, message.username));
+
+                    case CREATE_ACCOUNT:
+                        result = authenticator.createNewAccount(message.username, message.password);
+                        response = new Message(MessageType.CREATE_ACCOUNT_RESULT, message.username, null);
+                        response.message = result ? "SUCCESS" : "FAIL";
+                        out.writeObject(response);
+                        if (result) {
+                            callback.accept(new PlayerData(socket, in, out, message.username));
+                            return;
+                        }
                         break;
-                    }
+
+                    default:
+                        System.out.println("This message is unknown: " + message.type);
+                        break;
                 }
             }
         } catch (Exception e) {

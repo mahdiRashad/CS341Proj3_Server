@@ -3,10 +3,10 @@ import java.util.function.Consumer;
 
 public class PlayerThread implements Runnable {
 
-    //each player has outStream, inStream, int(0 or 1), a GameRules, callback, and a username
+    //each player has outStream, inStream, int(0 or 1), a GameRules, callback, authenticator, username, and his opponent username
     ObjectOutputStream out;
     ObjectInputStream in;
-    ObjectOutputStream otherPlayerOut;
+    ObjectOutputStream opponentOut;
     int playerId;
     private final GameRules rules;
     private final Consumer<Message> callback;
@@ -18,7 +18,7 @@ public class PlayerThread implements Runnable {
     public PlayerThread(ObjectInputStream in1, ObjectOutputStream out1, ObjectOutputStream out2, int playerId, GameRules rules, Consumer<Message> callback, String username, String opponentUsername, Authenticator authenticator) {
         this.in = in1;
         this.out = out1;
-        this.otherPlayerOut = out2;
+        this.opponentOut = out2;
         this.playerId = playerId;
         this.rules = rules;
         this.callback = callback;
@@ -37,7 +37,7 @@ public class PlayerThread implements Runnable {
                 switch (message.type) {
                     case TEXT:
                         message.username = this.username;
-                        otherPlayerOut.writeObject(message);
+                        opponentOut.writeObject(message);
                         out.writeObject(message);
                         callback.accept(message);
                         break;
@@ -45,31 +45,31 @@ public class PlayerThread implements Runnable {
                     case MOVE:
                         synchronized (rules) {
                             if (playerId != rules.getPlayerNumber()) {
-                                Message notTurn = new Message(playerId, "Not your turn");
-                                notTurn.type = MessageType.INVALID;
-                                out.writeObject(notTurn);
-                                callback.accept(notTurn);
+                                Message notYourTurn = new Message(playerId, "It is not your turn");
+                                notYourTurn.type = MessageType.INVALID;
+                                out.writeObject(notYourTurn);
+                                callback.accept(notYourTurn);
                                 break;
                             }
                             int column = Integer.parseInt(message.message);
                             if (rules.isMakeMove(playerId, column)) {
-                                Message moveMsg = new Message(playerId, playerId + ":" + column);
-                                moveMsg.type = MessageType.MOVE;
-                                out.writeObject(moveMsg);
-                                otherPlayerOut.writeObject(moveMsg);
-                                callback.accept(moveMsg);
+                                Message moveMessage = new Message(playerId, playerId + ":" + column);
+                                moveMessage.type = MessageType.MOVE;
+                                out.writeObject(moveMessage);
+                                opponentOut.writeObject(moveMessage);
+                                callback.accept(moveMessage);
 
                                 if (rules.isWin(playerId)) {
-                                    Message win = new Message(playerId, "WIN");
-                                    win.type = MessageType.WIN;
-                                    out.writeObject(win);
-                                    otherPlayerOut.writeObject(win);
-                                    callback.accept(win);
+                                    Message winMessage = new Message(playerId, "WIN");
+                                    winMessage.type = MessageType.WIN;
+                                    out.writeObject(winMessage);
+                                    opponentOut.writeObject(winMessage);
+                                    callback.accept(winMessage);
                                     authenticator.recordWin(username);
                                     authenticator.recordLoss(opponentUsername);
 
                                     sendStats(out, username);
-                                    sendStats(otherPlayerOut, opponentUsername);
+                                    sendStats(opponentOut, opponentUsername);
 
                                     authenticator.logout(username);
                                     authenticator.logout(opponentUsername);
@@ -79,18 +79,19 @@ public class PlayerThread implements Runnable {
                                     callback.accept(disconnect1);
 
                                     Message disconnect2 = new Message(1, false);
-                                    otherPlayerOut.writeObject(disconnect2);
+                                    opponentOut.writeObject(disconnect2);
                                     callback.accept(disconnect2);
                                     return;
+
                                 } else if (rules.isDraw()) {
-                                    Message draw = new Message(-1, "DRAW");
-                                    draw.type = MessageType.DRAW;
-                                    out.writeObject(draw);
-                                    otherPlayerOut.writeObject(draw);
-                                    callback.accept(draw);
+                                    Message drawMessage = new Message(-1, "DRAW");
+                                    drawMessage.type = MessageType.DRAW;
+                                    out.writeObject(drawMessage);
+                                    opponentOut.writeObject(drawMessage);
+                                    callback.accept(drawMessage);
 
                                     sendStats(out, username);
-                                    sendStats(otherPlayerOut, opponentUsername);
+                                    sendStats(opponentOut, opponentUsername);
 
                                     authenticator.logout(username);
                                     authenticator.logout(opponentUsername);
@@ -100,25 +101,24 @@ public class PlayerThread implements Runnable {
                                     callback.accept(disconnect1);
 
                                     Message disconnect2 = new Message(1, false);
-                                    otherPlayerOut.writeObject(disconnect2);
+                                    opponentOut.writeObject(disconnect2);
                                     callback.accept(disconnect2);
                                     return;
                                 }
-                                System.out.println("[SERVER] Received MOVE from player " + playerId + ": column " + message.message);
-
                                 rules.switchPlayer();
+
                             } else {
-                                Message invalid = new Message(playerId, "INVALID");
-                                invalid.type = MessageType.INVALID;
-                                out.writeObject(invalid);
-                                callback.accept(invalid);
+                                Message invalidMessage = new Message(playerId, "INVALID");
+                                invalidMessage.type = MessageType.INVALID;
+                                out.writeObject(invalidMessage);
+                                callback.accept(invalidMessage);
                             }
                         }
                         break;
 
                     case DISCONNECT:
                         Message disconnect = new Message(playerId, false);
-                        otherPlayerOut.writeObject(disconnect);
+                        opponentOut.writeObject(disconnect);
                         callback.accept(disconnect);
                         return;
                 }
@@ -130,10 +130,10 @@ public class PlayerThread implements Runnable {
 
     private void sendStats(ObjectOutputStream out, String username) throws IOException {
         int[] stats = authenticator.getStats(username);
-        Message statMsg = new Message(playerId, username + " stats - Wins: " + stats[0] + ", Losses: " + stats[1]);
-        statMsg.type = MessageType.TEXT;
-        statMsg.username = username;
-        out.writeObject(statMsg);
-        callback.accept(statMsg);
+        Message statsMessage = new Message(playerId, username + " Wins: " + stats[0] + ", Losses: " + stats[1]);
+        statsMessage.type = MessageType.TEXT;
+        statsMessage.username = username;
+        out.writeObject(statsMessage);
+        callback.accept(statsMessage);
     }
 }

@@ -21,13 +21,13 @@ public class Server implements Runnable {
     @Override
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(5555)) {
-            System.out.println("Connect Four Server is running...");
-
             new Thread(() -> {
                 while (true) {
                     try {
+                        //add clients to the queue and start the game when there are two clients in the queue
                         PlayerAuthenticator.PlayerData player1 = clientsQueue.take();
                         PlayerAuthenticator.PlayerData player2 = clientsQueue.take();
+                        //start the s game session with two players
                         threadsPool.execute(new ServerThread(player1, player2, callback, userManager));
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -35,7 +35,7 @@ public class Server implements Runnable {
                 }
             }).start();
 
-            while (true) {
+            while(true) {
                 Socket clientSocket = serverSocket.accept();
                 threadsPool.execute(new PlayerAuthenticator(clientSocket, userManager, clientsQueue::offer));
             }

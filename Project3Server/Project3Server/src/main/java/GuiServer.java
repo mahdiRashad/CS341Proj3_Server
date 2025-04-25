@@ -25,6 +25,7 @@ public class GuiServer extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         messages = new ListView<>();
+        messages.setPrefWidth(300);
         users = new ListView<>();
 
         server = new Server((Message msg) -> {
@@ -77,7 +78,7 @@ public class GuiServer extends Application {
                             int column = Integer.parseInt(parts[1]);
                             messages.getItems().add("[Move] Player " + currentPlayer + " placed a token in column " + column);
                         } else {
-                            messages.getItems().add("[Move] Received malformed move message: " + msg.message);
+                            messages.getItems().add("[Move] Received wrong move message: " + msg.message);
                         }
                         break;
 
