@@ -2,7 +2,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -14,6 +16,7 @@ public class GuiServer extends Application {
     private ListView<String> messages;
     private ListView<String> users;
     private Server server;
+    private Thread serverThread;
     String currentPlayer;
     String player1;
     String player2;
@@ -131,18 +134,34 @@ public class GuiServer extends Application {
         root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color: #f0f0f0; -fx-font-family: 'serif';");
 
+        Button shutdownButton = new Button("Shutdown Server");
+        shutdownButton.setOnAction(e -> shutdown());
+        shutdownButton.setStyle("-fx-background-color: red; -fx-text-fill: white; -fx-font-weight: bold;");
+        HBox bottomHBox = new HBox(shutdownButton);
+        bottomHBox.setAlignment(Pos.CENTER);
+        bottomHBox.setPadding(new Insets(10));
+        root.setBottom(bottomHBox);
+
         stage.setScene(new Scene(root, 600, 400));
         stage.setTitle("Connect Four Server GUI");
         stage.show();
 
         stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
             @Override
-            public void handle(WindowEvent event) {
-                Platform.exit();
-                System.exit(0);
+            public void handle(WindowEvent t) {
+                shutdown();
             }
         });
 
-        new Thread(server).start();
+        serverThread = new Thread(server);
+        serverThread.start();
     }
+    private void shutdown() {
+        if (serverThread != null && serverThread.isAlive()) {
+            serverThread.interrupt();
+        }
+        Platform.exit();
+        System.exit(0);
+    }
+
 }

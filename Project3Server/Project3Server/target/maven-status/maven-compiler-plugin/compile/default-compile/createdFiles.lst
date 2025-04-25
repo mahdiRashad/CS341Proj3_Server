@@ -1,13 +1,14 @@
 GuiServer.class
 GuiServer$2.class
-PlayerAuthHandler$PlayerSessionData.class
+Authenticator.class
 Message.class
 GuiServer$1.class
-PlayersManger.class
 PlayerThread$1.class
 GameRules.class
+PlayerAuthenticator$PlayerData.class
 MessageType.class
 PlayerThread.class
-PlayerAuthHandler.class
 Server.class
 ServerThread.class
+PlayerAuthenticator$1.class
+PlayerAuthenticator.class
