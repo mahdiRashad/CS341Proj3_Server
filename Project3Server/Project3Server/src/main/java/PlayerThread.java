@@ -117,10 +117,46 @@ public class PlayerThread implements Runnable {
                         break;
 
                     case DISCONNECT:
-                        Message disconnect = new Message(playerId, false);
-                        opponentOut.writeObject(disconnect);
-                        callback.accept(disconnect);
+                        Message disconnectt = new Message(playerId, false);
+                        opponentOut.writeObject(disconnectt);
+                        callback.accept(disconnectt);
                         return;
+
+                    case CLOSED:
+                        try {
+                            int id2;
+                            if(playerId==0){
+                                id2=1;
+                            }
+                            else{
+                                id2=0;
+                            }
+
+                            authenticator.logout(username);
+                            authenticator.logout(opponentUsername);
+
+                            Message disconnect = new Message(id2, false);
+                            disconnect.type = MessageType.CLOSED;
+                            disconnect.username = this.opponentUsername;
+
+                            opponentOut.writeObject(disconnect);
+                            opponentOut.flush();
+                            callback.accept(disconnect);
+
+                            Message selfDisconnect = new Message(playerId, false);
+                            selfDisconnect.type = MessageType.CLOSED;
+                            selfDisconnect.username = this.username;
+
+                            out.writeObject(selfDisconnect);
+                            out.flush();
+                            callback.accept(selfDisconnect);
+
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        }
+
+                        return;
+
                 }
             }
         } catch (Exception e) {
