@@ -1,4 +1,34 @@
-Connect four game server built using Java programming language that allow multiplayers to play connect four games at the same time while they are able to chat. Also, synchronization and concurrency are used for smooth online experience and JavaFx GUI used to give the server a nice user-friendly UI. The UI lets us see online players, their moves, the wins and losses, as well as the chats that are going on between players. The players are able to login and signup so that the server records their wins and losses.
+A Java-based server for online multiplayer Connect Four with built-in chat, user accounts, and a JavaFX admin UI. The server supports multiple concurrent games, synchronizes moves in real time, and tracks each player’s wins and losses.
+
+Features
+
+1-Multiplayer at scale: Host multiple matches simultaneously with thread-safe game sessions.
+
+2-Real-time sync: Concurrency controls ensure smooth, consistent board updates.
+
+3-Chat system: Players can message each other during matches.
+
+4-Accounts & stats: Login/Signup; server records per-user wins/losses.
+
+5-Admin UI (JavaFX): View online players, active games, recent moves, chats, and W/L stats.
+
+Tech Stack
+
+Language: Java
+
+UI: JavaFX (server dashboard)
+
+Networking: Java sockets (multithreaded)
+
+Data model: Per-match game state; per-user profiles and statistics
+
+How It Works (Short)
+
+Server core: Listens for client connections, authenticates users, pairs opponents, validates moves, broadcasts state, and logs results.
+
+Concurrency: A dedicated handler thread per client; synchronized game rooms prevent race conditions.
+
+UI: JavaFX dashboard for monitoring players, games, chat logs, and outcomes.
 
 Actual server:
 
