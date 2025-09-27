@@ -22,7 +22,7 @@ Networking: Java sockets (multithreaded)
 
 Data model: Per-match game state; per-user profiles and statistics
 
-How It Works (Short)
+How It Works
 
 Server core: Listens for client connections, authenticates users, pairs opponents, validates moves, broadcasts state, and logs results.
 
